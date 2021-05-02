@@ -137,9 +137,12 @@ tfidf_array = tfIdf.toarray()
 
 cosine_similarities = cosine_similarity(tfidf_array)
 df_similar = pd.DataFrame(cosine_similarities, columns = labels, index = labels)
+df_similar['sum'] = np.sum((df_similar < 1) & (df_similar > 0.5))
+df_similar = df_similar[df_similar['sum'] > 2]
+df_similar = df_similar[df_similar.index]
 
 
-sns.heatmap(df_similar, vmin=0, vmax=1, cmap='Blues')
+sns.heatmap(df_similar, vmin=df_similar.min().min(), vmax=1, cmap='Blues')
 plt.savefig("heatmap", dpi=400, bbox_inches='tight')
 
 
@@ -148,7 +151,8 @@ from yellowbrick.text import TSNEVisualizer,UMAPVisualizer
 
 def visualize_tfidf_tsne(corpus_data,corpus_target,labels = True,alpha=0.9,metric=None):
     docs   = tfIdfVectorizer.transform(corpus_data)
-    
+    print(docs)
+    return
     if labels is True:
         labels = corpus_target
     else:
@@ -192,7 +196,7 @@ import gensim.downloader
 model_gn_word2vec = gensim.downloader.load('word2vec-google-news-300')
 
 
-sample = df[['label', 'lemmas']].sample(20000)
+sample = df[['label', 'lemmas']]
 embeddings = []
 # embeddings.append(model_gn[word]) 
 # words.append(word)
@@ -218,8 +222,6 @@ sm = np.matrix(average_sample.tolist())
 pca = PCA(n_components=2)
 fitted = pca.fit_transform(sm)
 principalDf = pd.DataFrame(data = fitted, columns = ['pc1', 'pc2'], index = average_sample.index)
-principalDf
-
 
 
 # Plot
@@ -229,3 +231,52 @@ for i,group in principalDf.iterrows():
     ax.plot(group[0], group[1], marker='o', linestyle='', ms=12, label=i)
     ax.annotate(i, (group[0], group[1]))
 plt.show()
+
+
+sample = df[['label', 'lemmas']]
+embeddings = []
+# embeddings.append(model_gn[word]) 
+# words.append(word)
+j = 0
+for i, row in sample.iterrows():
+    embeddings.append([])
+    #print(row['lemmas'])
+    x = ' '.join(list(row['lemmas']))
+    repre = tfIdfVectorizer.transform([x])
+    data = repre.data
+    ks = set(row['lemmas'])
+    dct = dict(zip(ks, data))
+    #print(dct)
+    for k,w in enumerate(row['lemmas']):
+        try:
+            embeddings[j].append(model_gn_word2vec[w]*dct[w])
+        except KeyError:
+            pass
+    embeddings[j] = np.array(embeddings[j])
+    embeddings[j] = np.mean(embeddings[j], axis=0)
+    #print(embeddings[j])
+    j+=1
+sample['embedding'] = embeddings
+average_sample = sample.groupby('label')['embedding'].apply(np.mean)
+
+
+average_sample
+
+
+from sklearn.decomposition import PCA
+sm = np.matrix(average_sample.tolist())
+pca = PCA(n_components=2)
+fitted = pca.fit_transform(sm)
+principalDf = pd.DataFrame(data = fitted, columns = ['pc1', 'pc2'], index = average_sample.index)
+
+
+# Plot
+fig, ax = plt.subplots(figsize=(10,7))
+ax.margins(0.05) # Optional, just adds 5% padding to the autoscaling
+for i,group in principalDf.iterrows():
+    ax.plot(group[0], group[1], marker='o', linestyle='', ms=12, label=i, c='lightblue')
+    ax.annotate(i, (group[0]+0.001, group[1]+0.001), fontsize=13)
+plt.xlabel('PC1')
+plt.ylabel('PC2')
+plt.title('word2vec, combined with TF-IDF and PCA')
+plt.savefig('w2ctfpc', dpi=300)
