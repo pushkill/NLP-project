@@ -19,6 +19,7 @@ import string
 import re
 from collections import Counter
 from tqdm import tqdm
+import time
 tqdm.pandas()
 
 
@@ -212,22 +213,37 @@ import tensorflow_hub as hub
 elmo = hub.load("https://tfhub.dev/google/elmo/3").signatures['default']
 
 
-dfs = df.drop(['tokens_tensor', 'segments_tensors', 'tokenized_text', 'text'], axis = 1)
-dfs = df.sample(10000)
-dfs
+df = df.drop(['tokens_tensor', 'segments_tensors', 'tokenized_text', 'text'], axis = 1)
 
 
-lst =  df['preprocessed_text'].tolist()
-lst2 = df['appended'].tolist()
-embeddings_words = elmo(tf.constant(lst))["elmo"]
-embeddings_sent = elmo(tf.constant(lst2))["default"]
-embeddings_words
+dfs = np.array_split(df, 600)
+
+
+all_cases = len(df)
+for i,small in enumerate(dfs):
+    start = time.time()
+    lst =  small['preprocessed_text'].tolist()
+    lst2 = small['appended'].tolist()
+    embeddings_words = elmo(tf.constant(lst))["elmo"]
+    embeddings_sent = elmo(tf.constant(lst2))["default"]
+    small['elmo_sentence'] = embeddings_sent.numpy().tolist()
+    small['elmo_word'] = embeddings_words.numpy().tolist()
+    small['idx'] = small.progress_apply(lambda x: len(x['appended'].split()), axis = 1)
+    small['shape'] = small.progress_apply(lambda x: len(x['elmo_word']), axis = 1)
+    small['idx'] = small.progress_apply(lambda x: min(x['idx'], x['shape']), axis = 1)
+    small['elmo_word'] = small.progress_apply(lambda x: x['elmo_word'][x['idx']-1], axis = 1)
+    small = small.drop([ 'idx', 'shape'], axis = 1)
+    print(i/len(dfs)*100)
 
 
 embeddings_words.numpy().shape
 
 
 embeddings_sent.numpy().shape
+
+
+df['elmo_word'] = embeddings_words.numpy().tolist()
+df['elmo_word'] = df.progress_apply(lambda x: x['elmo_word'][x['idx']-1], axis = 1)
 
 
 df['elmo_sentence'] = embeddings_sent.numpy().tolist()
@@ -239,10 +255,6 @@ df['idx'] = df.progress_apply(lambda x: min(x['idx'], x['shape']), axis = 1)
 
 
 df.tail(2)
-
-
-df['elmo_word'] = embeddings_words.numpy().tolist()
-df['elmo_word'] = df.progress_apply(lambda x: x['elmo_word'][x['idx']-1], axis = 1)
 
 
 df = df.drop(['elmo_words', 'idx', 'shape'], axis = 1)
