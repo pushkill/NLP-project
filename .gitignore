@@ -1,2 +1,10 @@
 cc.en.300.bin
 cc.en.300.bin.gz
+corpus.pkl
+dictionary.gensim
+model5.gensim
+model5.gensim.state
+model5.gensim.expElogbeta.npy
+word2vec.model
+word2vec.model.trainables.syn1neg.npy
+word2vec.model.wv.vectors.npy
