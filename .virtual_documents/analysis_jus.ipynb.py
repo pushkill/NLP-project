@@ -133,13 +133,14 @@ def get_n_most_freq_words_df(df, top_n_words, words_column):
     return df_labels
 
 
-df_labels_freq = get_n_most_freq_words_df(df, 100, 'lemmas')
+df_labels_freq = get_n_most_freq_words_df(df, 40, 'lemmas')
 
 
-df_labels_freq_10 = get_n_most_freq_words_df(df, 10, 'lemmas')
+df_labels_freq_10 = get_n_most_freq_words_df(df, 4, 'lemmas')
+df_labels_freq_10[['label', 'n_most_freq_words_frequencies']]
 
 
-df_labels_freq_10
+print(df_labels_freq_10[['label', 'n_most_freq_words']].to_latex(index=False))
 
 
 tmp = df_labels_freq_10['n_most_freq_words'].explode()
@@ -174,7 +175,7 @@ def get_top_n_tfidf_words_df(df, top_n_words, words_column):
 
 
 
-df_labels_tf_idf = get_top_n_tfidf_words_df(df, 100, 'lemmas')
+df_labels_tf_idf = get_top_n_tfidf_words_df(df, 40, 'lemmas')
 
 
 df_labels_tf_idf
@@ -184,7 +185,7 @@ df_labels_tf_idf
 df_labels = pd.merge(df_labels_freq, df_labels_tf_idf, on='label')
 
 
-df_labels
+print(df_labels[['label', 'n_most_freq_words','top_n_tfidf_words']].to_latex(index=False))
 
 
 import gensim
