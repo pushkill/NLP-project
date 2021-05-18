@@ -30,7 +30,7 @@ df = pd.read_csv( os.path.join(cwd, 'full_dataset_all_labels.csv'))
 stop_words=set(stopwords.words('english') + list(string.punctuation))
 stop_words.add('rt') # add word rt (meaning retweet) to stop words
 df = pd.read_csv('full_dataset_all_labels.csv')
-#df = df.sample(10000)
+
 
 
 i=21750
@@ -99,6 +99,31 @@ with pd.option_context("max_colwidth", 1000):
 df[(df['lemmas']get_ipython().getoutput("=df['tokenized_text']) & (df['lemmas'].str.len() < 4)].sample(10)")
 
 
+df_default = df.copy() # save default dataframe
+
+
+# combine multiple labels, according to clustering results we join labels that are close to each other
+join_labels = {('hostile', 'racist', 'sexist'): 'HSR', ('harassment', 'profane', 'hateful'):'HPH', ('vulgar', 'slur', 'cyberbullying', 'offensive'):'VSCO', 
+          ('homophobic', 'abuse', 'threat', 'severe_toxic', 'identity_hate'): 'HATSI', ('obscene', 'insult'):'OI'}
+encoder = {}
+for group in join_labels:
+    for label in group:
+        encoder[label] = join_labels[group]
+encoder
+df_joined = df_default.replace({'label':encoder})
+df_joined.head()
+
+
+# label subset df
+labels_subset = ['homophobic', 'racist', 'sexist', 'cyberbullying', 'threat']
+df_subset = df_default.loc[df_default['label'].isin(labels_subset)]
+df_subset.head()
+
+
+# select which df to continue with
+df = df_subset.copy()
+
+
 def labels_most_frequent_words(df, label, column, n_words = 10, visualise = False):
     # returns sorted list (decreasing) of n most frequent words for a label
     all_words_list=df[df['label']==label][column].sum()
@@ -133,14 +158,13 @@ def get_n_most_freq_words_df(df, top_n_words, words_column):
     return df_labels
 
 
-df_labels_freq = get_n_most_freq_words_df(df, 40, 'lemmas')
+df_labels_freq = get_n_most_freq_words_df(df, 100, 'lemmas')
 
 
-df_labels_freq_10 = get_n_most_freq_words_df(df, 4, 'lemmas')
-df_labels_freq_10[['label', 'n_most_freq_words_frequencies']]
+df_labels_freq_10 = get_n_most_freq_words_df(df, 10, 'lemmas')
 
 
-print(df_labels_freq_10[['label', 'n_most_freq_words']].to_latex(index=False))
+df_labels_freq_10
 
 
 tmp = df_labels_freq_10['n_most_freq_words'].explode()
@@ -175,7 +199,7 @@ def get_top_n_tfidf_words_df(df, top_n_words, words_column):
 
 
 
-df_labels_tf_idf = get_top_n_tfidf_words_df(df, 40, 'lemmas')
+df_labels_tf_idf = get_top_n_tfidf_words_df(df, 100, 'lemmas')
 
 
 df_labels_tf_idf
@@ -185,7 +209,7 @@ df_labels_tf_idf
 df_labels = pd.merge(df_labels_freq, df_labels_tf_idf, on='label')
 
 
-print(df_labels[['label', 'n_most_freq_words','top_n_tfidf_words']].to_latex(index=False))
+df_labels
 
 
 import gensim
@@ -195,9 +219,6 @@ from gensim.models.fasttext import load_facebook_vectors
 
 model_gn_glove = gensim.downloader.load('glove-wiki-gigaword-300')
 model_gn_word2vec = gensim.downloader.load('word2vec-google-news-300')
-
-
-df_labels[df_labels['label']=='vulgar']['n_most_freq_words'].iloc[0][0]
 
 
 def get_word_embeddings(labels, df, list_of_words_column, model_gn, top_n):
@@ -348,3 +369,130 @@ plotMDS(f"Word Hierarchy - Fasttext [MDS] {n_significant_words} words {words_col
 
 plotPCA(f"Word Hierarchy - Fasttext [PCA] {n_significant_words} words {words_column}",unique_labels, word_clusters, embedding_clusters,
         f"Word Hierarchy - Fasttext [PCA] {n_significant_words} words {words_column}.png")
+
+
+
+
+
+from gensim.test.utils import common_texts
+from gensim.models import Word2Vec
+vector_len=256
+model_trained_word2vec = Word2Vec(sentences=list(df['lemmas']), size=vector_len, window=5, min_count=1, workers=4)
+#model_trained_word2vec.save("word2vec.model")
+
+
+n_significant_words = 10
+words_column = 'top_n_tfidf_words'
+unique_labels = set(df['label'])
+word_clusters, embedding_clusters = get_word_embeddings(unique_labels, df_labels, words_column, model_trained_word2vec.wv, n_significant_words)
+
+
+plotTSNE(f"Word2Vec trained on our data, vector length {vector_len} [t-SNE] {n_significant_words} words {words_column}", unique_labels, word_clusters, embedding_clusters, 
+        f"Word2Vec trained on our data, vector length {vector_len} [t-SNE] {n_significant_words} words {words_column}.png")
+
+
+plotMDS(f"Word2Vec trained on our data, vector length {vector_len} [MDS] {n_significant_words} words {words_column}", unique_labels, word_clusters, embedding_clusters, 
+        f"Word2Vec trained on our data, vector length {vector_len} [MDS] {n_significant_words} words {words_column}.png")
+
+
+plotPCA(f"Word2Vec trained on our data, vector length {vector_len} [PCA] {n_significant_words} words {words_column}", unique_labels, word_clusters, embedding_clusters, 
+        f"Word2Vec trained on our data, vector length {vector_len} [PCA] {n_significant_words} words {words_column}.png")
+
+
+from gensim.models import FastText
+from gensim.test.utils import common_texts
+vector_len=256
+model_trained_fasttext = FastText(sentences = list(df['lemmas']), size=4, window=5, min_count=1)  # instantiate
+
+
+n_significant_words = 20
+words_column = 'top_n_tfidf_words'
+unique_labels = set(df['label'])
+word_clusters, embedding_clusters = get_word_embeddings(unique_labels, df_labels, words_column, model_trained_fasttext.wv, n_significant_words)
+
+
+plotTSNE(f"fastText trained on our data, vector length {vector_len} [t-SNE] {n_significant_words} words {words_column}", unique_labels, word_clusters, embedding_clusters, 
+        f"fastText trained on our data, vector length {vector_len} [t-SNE] {n_significant_words} words {words_column}.png")
+
+
+plotMDS(f"fastText trained on our data, vector length {vector_len} [MDS] {n_significant_words} words {words_column}", unique_labels, word_clusters, embedding_clusters, 
+        f"fastText trained on our data, vector length {vector_len} [MDS] {n_significant_words} words {words_column}.png")
+
+
+plotPCA(f"fastText trained on our data, vector length {vector_len} [PCA] {n_significant_words} words {words_column}", unique_labels, word_clusters, embedding_clusters, 
+        f"fastText trained on our data, vector length {vector_len} [PCA] {n_significant_words} words {words_column}.png")
+
+
+from gensim import corpora
+import pickle
+
+dictionary = corpora.Dictionary(list(df['lemmas']))
+corpus = [dictionary.doc2bow(text) for text in list(df['lemmas'])]
+
+pickle.dump(corpus, open('corpus.pkl', 'wb'))
+dictionary.save('dictionary.gensim')
+
+
+import gensim
+NUM_TOPICS = 6
+ldamodel = gensim.models.ldamodel.LdaModel(corpus, num_topics = NUM_TOPICS, id2word=dictionary, passes=10)
+ldamodel.save('model5.gensim')
+topics = ldamodel.print_topics(num_words=4)
+for topic in topics:
+    print(topic)
+
+
+import gensim
+import pickle
+import pyLDAvis.gensim
+'''
+dictionary = gensim.corpora.Dictionary.load('dictionary.gensim')
+corpus = pickle.load(open('corpus.pkl', 'rb'))
+ldamodel = gensim.models.ldamodel.LdaModel.load('model5.gensim')
+'''
+
+lda_display = pyLDAvis.gensim.prepare(ldamodel, corpus, dictionary, sort_topics=False)
+pyLDAvis.display(lda_display)
+
+
+topics = ldamodel.show_topics(formatted=False)
+topics
+
+
+# 1. Wordcloud of Top N words in each topic
+from matplotlib import pyplot as plt
+from wordcloud import WordCloud, STOPWORDS
+import matplotlib.colors as mcolors
+
+cols = [color for name, color in mcolors.TABLEAU_COLORS.items()]  # more colors: 'mcolors.XKCD_COLORS'
+
+cloud = WordCloud(stopwords=stop_words,
+                  background_color='white',
+                  width=2500,
+                  height=1800,
+                  max_words=10,
+                  colormap='tab10',
+                  color_func=lambda *args, **kwargs: cols[i],
+                  prefer_horizontal=1.0)
+
+topics = ldamodel.show_topics(formatted=False)
+
+fig, axes = plt.subplots(2, 3, figsize=(10,10), sharex=True, sharey=True)
+
+for i, ax in enumerate(axes.flatten()):
+    fig.add_subplot(ax)
+    topic_words = dict(topics[i][1])
+    cloud.generate_from_frequencies(topic_words, max_font_size=300)
+    plt.gca().imshow(cloud)
+    plt.gca().set_title('Topic ' + str(i), fontdict=dict(size=16))
+    plt.gca().axis('off')
+
+
+plt.subplots_adjust(wspace=0, hspace=0)
+plt.axis('off')
+plt.margins(x=0, y=0)
+plt.tight_layout()
+plt.show()
+
+
+
