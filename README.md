@@ -5,7 +5,18 @@
 This is repository for project in Natural Language Processing course at the University of Ljubljana 2020/21. 
 
 ## Dataset acquistion (and merging)
-Use full_dataset_all_labels.csv for any analysis. It is a merged dataset from different sources (listed in report).
+Use full_dataset_all_labels.csv for any analysis. It is a merged dataset from all sources that we used. This contains 2 columns: text and label.
+We have listed and described the datasets we used in the report (as well as cited the datasets' authors).  
+Here we where said datasets can be found
+* Kaggle dataset can be found at https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge/data
+* Davidsons dataset can be found at https://github.com/t-davidson/hate-speech-and-offensive-language
+* Vidgens dataset can be found at https://www.kaggle.com/usharengaraju/dynamically-generated-hate-speech-dataset?select=2020-12-31-DynamicallyGeneratedHateDataset-entries-v0.1.csv
+* Mandls dataset can be found at https://hasocfire.github.io/hasoc/2019/dataset.html 
+* Waseems dataset can be found at https://github.com/DataforGoodIsrael/DetectHateSpeech
+* Chandrasekharans dataset can be found at https://github.com/ceshwar/reddit-norm-violations
+* Cacholas dataset can be found at https://github.com/ericholgate/vulgartwitter
+* Formspring dataset can be found at https://github.com/StefanoFrazzetto/CrimeDetector/tree/master/datasets/formspring but was originally provided at https://www.kaggle.com/swetaagrawal/formspring-data-for-cyberbullying-detection
+* dataset by Golbeck et al. can be obtained by asking them via e-mail (provided in their paper)
 
 
 ## Repository organisation
