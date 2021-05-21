@@ -31,4 +31,8 @@ Here we where said datasets can be found
 * "upset.ipynb" is a jupyter notebook in which upset plots were created, there is also some word done with TF-IDF representations.
 
 ## Reproducibility
-We used Anaconda environement so our code can be easily rerun. Requirements for recreating environment and thus easily running the notebooks are written in "environment.yml" file.
+We used Anaconda environement so our code can be easily rerun. Requirements for recreating environment and thus easily running the notebooks are written in "environment.yml" file. You can simply recreate the enviroment by running following command:
+
+`
+conda env create -f environment.yml
+`
